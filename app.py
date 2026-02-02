@@ -3,19 +3,39 @@ import sqlite3
 from datetime import datetime
 from functools import wraps
 import hashlib
-
+import os
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
 
 # ฟังก์ชันเชื่อมต่อฐานข้อมูล
+# ฟังก์ชันเชื่อมต่อฐานข้อมูล
 def get_db():
-    conn = sqlite3.connect('database.db')
+    import os
+    # กำหนด path ของฐานข้อมูล
+    if os.environ.get('RENDER'):
+        db_path = '/tmp/database.db'
+    else:
+        db_path = 'database.db'
+    
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 # สร้างตารางในฐานข้อมูล
+# สร้างตารางในฐานข้อมูล
 def init_db():
-    conn = get_db()
+    import os
+    # กำหนด path ของฐานข้อมูล
+    if os.environ.get('RENDER'):
+        # ถ้ารันบน Render ใช้ /tmp
+        db_path = '/tmp/database.db'
+    else:
+        # ถ้ารันบนเครื่องตัวเอง
+        db_path = 'database.db'
+    
+    conn = sqlite3.connect(db_path)
+    
+    # สร้างตาราง users
     conn.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,6 +45,8 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # สร้างตาราง transactions
     conn.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,8 +60,10 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    
     conn.commit()
     conn.close()
+    print(f"Database initialized at: {db_path}")
 
 # เข้ารหัสรหัสผ่าน
 def hash_password(password):
@@ -257,4 +281,10 @@ def logout():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    from flask import Flask, render_template, request, redirect, url_for, session, flash
+import sqlite3
+from datetime import datetime
+from functools import wraps
+import hashlib
+import os
